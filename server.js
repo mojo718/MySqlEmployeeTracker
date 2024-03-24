@@ -1,7 +1,11 @@
 //psuedo coding
 // import required modules
+const mysql =require("mysql");
+const inquirer = require("inquirer");
+const conTable = require("console.table") //https://www.npmjs.com/package/console.table?activeTab=versions
 
 // start connection to MySql DB
+
 
 // various functions
 // function to view employees
