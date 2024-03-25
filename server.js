@@ -141,38 +141,113 @@ function addEmployee() {
 function removeEmployee() {
     let employeeList = [];
     connection.query(
-      "SELECT employees.first_name, employees.last_name FROM employees", (err, res) => {
-        for (let i = 0; i < res.length; i++) {
-          employeeList.push(res[i].first_name + " " + res[i].last_name);
+        "SELECT employees.first_name, employees.last_name FROM employees", (err, res) => {
+            for (let i = 0; i < res.length; i++) {
+                employeeList.push(res[i].first_name + " " + res[i].last_name);
+            }
+            inquirer
+                .prompt([
+                    {
+                        type: "list",
+                        message: "Which employee would you like to delete?",
+                        name: "employee",
+                        choices: employeeList
+
+                    },
+                ])
+                .then(function (res) {
+                    const query = connection.query(
+                        `DELETE FROM employees WHERE concat(first_name, ' ' ,last_name) = '${res.employee}'`,
+                        function (err, res) {
+                            if (err) throw err;
+                            console.log("Employee deleted!\n");
+                            start();
+                        });
+                });
         }
+    );
+};
+
+//function to view departments
+function viewAllDept() {
+    connection.query("SELECT * FROM departments", function (err, res) {
+        console.table(res);
+        start();
+    })
+}
+// function to add departments
+function addDept() {
+    inquirer
+        .prompt([
+            {
+                type: "input",
+                name: "deptName",
+                message: "What Department would you like to add?"
+            }
+        ])
+        .then(function (res) {
+            console.log(res);
+            const query = connection.query(
+                "INSERT INTO department SET ?",
+                {
+                    name: res.deptName
+                },
+                function (err, res) {
+                    connection.query("SELECT * FROM department", function (err, res) {
+                        console.table(res);
+                        start();
+                    })
+                }
+            )
+        })
+    }
+
+
+
+//function to view roles
+function viewAllRoles() {
+    connection.query("SELECT roles.*, departments.name FROM role LEFT JOIN departments ON departments.id = roles.department_id", function (err, res) {
+      if (err) throw err;
+      console.table(res);
+      start();
+    }
+    )
+  }
+  
+// function update roles
+function updateEmployeeRole() {
+    connection.query("SELECT first_name, last_name, id FROM employees",
+      function (err, res) {
+        // for (let i=0; i <res.length; i++){
+        //   employees.push(res[i].first_name + " " + res[i].last_name);
+        // }
+        let employees = res.map(employee => ({ name: employee.first_name + " " + employee.last_name, value: employee.id }))
+  
         inquirer
           .prompt([
             {
               type: "list",
-              message: "Which employee would you like to delete?",
-              name: "employee",
-              choices: employeeList
-  
+              name: "employeeName",
+              message: "Which employee's role would you like to update?",
+              choices: employees
             },
+            {
+              type: "input",
+              name: "role",
+              message: "What is your new role?"
+            }
           ])
           .then(function (res) {
-            const query = connection.query(
-              `DELETE FROM employees WHERE concat(first_name, ' ' ,last_name) = '${res.employee}'`,
+            connection.query(`UPDATE employees SET roles_id = ${res.role} WHERE id = ${res.employeeName}`,
               function (err, res) {
-                if (err) throw err;
-                console.log("Employee deleted!\n");
-                start();
-              });
-          });
+                console.log(res);
+                //updateRole(res);
+                start()
+              }
+            );
+          })
       }
-    );
-  };
-
-//function to view departments
-// function to add departments
-// function to remove departments
-
-//function to view roles
-// function to add roles
-// function to remove roles
-
+    )
+  }
+  
+  
