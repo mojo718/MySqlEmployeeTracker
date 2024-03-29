@@ -103,74 +103,83 @@ function addEmployee() {
 
   // Query to retrieve all manager names
   connection.query(
-    "SELECT CONCAT(first_name, ' ', last_name) AS manager_name FROM employees WHERE manager_id IS NULL",
-    function (err, managerResults) {
-      if (err) throw err;
+      "SELECT CONCAT(first_name, ' ', last_name) AS manager_name FROM employees WHERE manager_id IS NULL",
+      function (err, managerResults) {
+          if (err) throw err;
 
-      // Extract manager names from query results
-      const managerNames = managerResults.map(manager => manager.manager_name);
+          // Extract manager names from query results
+          const managerNames = managerResults.map(manager => manager.manager_name);
 
-      inquirer
-        .prompt([
-          {
-            type: "input",
-            message: "First Name?",
-            name: "first_name",
-          },
-          {
-            type: "input",
-            message: "Last Name?",
-            name: "last_name"
-          },
-          {
-            type: "list",
-            message: "What is the employee's role ID?",
-            name: "role_id",
-            choices: [1, 2, 3]
-          },
-          {
-            type: "list",
-            message: "Who is their manager?",
-            name: "manager_name",
-            choices: managerNames
-          }
-        ])
-        .then(function (res) {
-          // Look up manager's ID based on their name
-          connection.query(
-            "SELECT id FROM employees WHERE CONCAT(first_name, ' ', last_name) = ?",
-            res.manager_name,
-            function (err, managerRes) {
+          // Query to retrieve all roles
+          connection.query("SELECT id, title FROM roles", function (err, roles) {
               if (err) throw err;
 
-              // Set manager_id based on the query result
-              if (managerRes.length > 0) {
-                res.manager_id = managerRes[0].id;
-              } else {
-                console.log("Error: Manager not found.");
-                return;
-              }
+              // Extract role titles and IDs from query results
+              const roleChoices = roles.map(role => ({ name: role.title, value: role.id }));
 
-              // Remove manager_name from res object
-              delete res.manager_name;
+              inquirer
+                  .prompt([
+                      {
+                          type: "input",
+                          message: "First Name?",
+                          name: "first_name",
+                      },
+                      {
+                          type: "input",
+                          message: "Last Name?",
+                          name: "last_name"
+                      },
+                      {
+                          type: "list",
+                          message: "What is the employee's role?",
+                          name: "role_id",
+                          choices: roleChoices // Use role titles as choices
+                      },
+                      {
+                          type: "list",
+                          message: "Who is their manager?",
+                          name: "manager_name",
+                          choices: managerNames
+                      }
+                  ])
+                  .then(function (res) {
+                      // Look up manager's ID based on their name
+                      connection.query(
+                          "SELECT id FROM employees WHERE CONCAT(first_name, ' ', last_name) = ?",
+                          res.manager_name,
+                          function (err, managerRes) {
+                              if (err) throw err;
 
-              // Insert new employee into the database
-              const query = connection.query(
-                "INSERT INTO employees SET ?",
-                res,
-                function (err, res) {
-                  if (err) throw err;
-                  console.log("Employee added!\n");
-                  viewAllEmployees()
-                  start();
-                }
-              );
-            }
-          );
-        });
-    }
+                              // Set manager_id based on the query result
+                              if (managerRes.length > 0) {
+                                  res.manager_id = managerRes[0].id;
+                              } else {
+                                  console.log("Error: Manager not found.");
+                                  return;
+                              }
+
+                              // Remove manager_name from res object
+                              delete res.manager_name;
+
+                              // Insert new employee into the database
+                              const query = connection.query(
+                                  "INSERT INTO employees SET ?",
+                                  res,
+                                  function (err, res) {
+                                      if (err) throw err;
+                                      console.log("Employee added!\n");
+                                      viewAllEmployees();
+                                      start();
+                                  }
+                              );
+                          }
+                      );
+                  });
+          });
+      }
   );
 }
+
 
 //Function to remove 
 function removeEmployee() {
@@ -307,31 +316,45 @@ function updateEmployeeRole() {
 
           let employeeChoices = employees.map(employee => ({ name: employee.first_name + " " + employee.last_name, value: employee.id }));
 
-          inquirer
-              .prompt([
-                  {
-                      type: "list",
-                      name: "employeeId",
-                      message: "Which employee's role would you like to update?",
-                      choices: employeeChoices
-                  },
-                  {
-                      type: "input",
-                      name: "roleId",
-                      message: "Enter the new role ID:"
-                  }
-              ])
-              .then(function (answers) {
-                  const { employeeId, roleId } = answers;
-                  connection.query(
-                      `UPDATE employees SET role_id = ${roleId} WHERE id = ${employeeId}`,
-                      function (err, result) {
-                          if (err) throw err;
-                          console.log("Employee role updated!\n");
-                          start();
-                      }
-                  );
-              });
+          // Fetch role names from the roles table
+          connection.query("SELECT id, title FROM roles",
+              function (err, roles) {
+                  if (err) throw err;
+
+                  let roleChoices = roles.map(role => ({ name: role.title, value: role.id }));
+
+                  inquirer
+                      .prompt([
+                          {
+                              type: "list",
+                              name: "employeeId",
+                              message: "Which employee's role would you like to update?",
+                              choices: employeeChoices
+                          },
+                          {
+                              type: "list",
+                              name: "roleName",
+                              message: "Select the new role for the employee:",
+                              choices: roleChoices
+                          }
+                      ])
+                      .then(function (answers) {
+                          const { employeeId, roleName } = answers;
+
+                          // Update the employee's role using the selected role name
+                          connection.query(
+                              "UPDATE employees SET role_id = ? WHERE id = ?",
+                              [roleName, employeeId],
+                              function (err, result) {
+                                  if (err) throw err;
+                                  console.log("Employee role updated!\n");
+                                  start();
+                              }
+                          );
+                      });
+              }
+          );
       }
   );
 }
+
