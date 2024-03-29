@@ -171,6 +171,7 @@ function addEmployee() {
     }
   );
 }
+
 //Function to remove 
 function removeEmployee() {
   let employeeList = [];
@@ -238,10 +239,99 @@ function addDept() {
 
 //function to View Roles
 function viewAllRoles() {
-  connection.query("SELECT roles.*, departments.name FROM role LEFT JOIN departments ON departments.id = roles.department_id", function (err, res) {
-    if (err) throw err;
-    console.table(res);
-    start();
-  }
-  )
+  connection.query("SELECT roles.*, departments.name FROM roles LEFT JOIN departments ON departments.id = roles.department_id", function (err, res) {
+      if (err) throw err;
+      console.table(res);
+      start();
+  });
+}
+
+//function to add role
+function addRole() {
+  let departments = [];
+  connection.query("SELECT * FROM departments",
+      function (err, departmentData) {
+          if (err) throw err;
+          for (let i = 0; i < departmentData.length; i++) {
+              departments.push({ name: departmentData[i].name, value: departmentData[i].id });
+          }
+          inquirer
+              .prompt([
+                  {
+                      type: "input",
+                      name: "title",
+                      message: "What role would you like to add?"
+                  },
+                  {
+                      type: "input",
+                      name: "salary",
+                      message: "What is the salary for the role?"
+                  },
+                  {
+                      type: "list",
+                      name: "departmentId",
+                      message: "Select the department for the role:",
+                      choices: departments
+                  }
+              ])
+              .then(function (answers) {
+                  const { title, salary, departmentId } = answers;
+                  const query = connection.query(
+                      "INSERT INTO roles SET ?",
+                      {
+                          title: title,
+                          salary: salary,
+                          department_id: departmentId
+                      },
+                      function (err, res) {
+                          if (err) {
+                              console.error("Error adding role:", err);
+                              start();
+                          } else {
+                              console.log("Role added successfully!");
+                              viewAllRoles()
+                              start();
+                          }
+                      }
+                  );
+              })
+      })
+}
+
+
+//function to update roles of employee
+function updateEmployeeRole() {
+  connection.query("SELECT first_name, last_name, id FROM employees",
+      function (err, employees) {
+          if (err) throw err;
+
+          let employeeChoices = employees.map(employee => ({ name: employee.first_name + " " + employee.last_name, value: employee.id }));
+
+          inquirer
+              .prompt([
+                  {
+                      type: "list",
+                      name: "employeeId",
+                      message: "Which employee's role would you like to update?",
+                      choices: employeeChoices
+                  },
+                  {
+                      type: "input",
+                      name: "roleId",
+                      message: "Enter the new role ID:"
+                  }
+              ])
+              .then(function (answers) {
+                  const { employeeId, roleId } = answers;
+                  connection.query(
+                      `UPDATE employees SET role_id = ${roleId} WHERE id = ${employeeId}`,
+                      function (err, result) {
+                          if (err) throw err;
+                          console.log("Employee role updated!\n");
+                          start();
+                      }
+                  );
+              });
+      }
+  );
 }

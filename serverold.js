@@ -249,11 +249,3 @@ function updateEmployeeRole() {
         }
     )
 }
-//function to view departments
-function viewAllDept() {
-    connection.query("SELECT * FROM departments", function (err, res) {
-        console.table(res);
-        start();
-    })
-}
-

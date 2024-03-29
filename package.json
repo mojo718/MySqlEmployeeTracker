@@ -2,7 +2,8 @@
   "dependencies": {
     "console.table": "^0.10.0",
     "inquirer": "^8.2.4",
-    "mysql2": "^3.9.2"
+    "mysql2": "^3.9.2",
+    "nodemon": "^3.1.0"
   },
   "scripts": {
     "start": "node server.js"
